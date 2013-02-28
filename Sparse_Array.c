@@ -79,7 +79,17 @@ int get( trie * root_, unsigned int idx_ ){
 }
 
 // the iterate function.
-int iterate_( trie * trie_ ){
+void iterate_print_( trie * node_, unsigned int count_ ){
+  if( count_ == CHILDREN_-1 && node_ != NULL )
+    fprintf( stdout, "%d ", (node_->content_).value_ );
+  else if( node_ != NULL && (node_->content_).children_ != NULL )
+    iterate_print_( node_, count_++ );
+}
+
+int iterate_( trie * root_ ){
+  if( root_ == NULL || (root_->content_).children_ == NULL )
+    return -1;
+  iterate_print_( root_, (unsigned int) 0 );
   return 0;
 }
 
