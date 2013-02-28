@@ -24,9 +24,21 @@ union Content{
 
 There will be 5 functions designed (pseudocode) as follows:
 construct_trie_( ) : constructor function
+=== just initialize everything to NULL.
+
 destruct_trie_( Trie * ) : destruct all dynamically created variables
+=== post order traversal and free the dynamically allocated memory.
+
 insert_element_( Trie *, index, value ) : update the value at the provided index
+=== check the passed in parameters
+=== check from the root (level 0) to the corresponding leaf. if any node is not
+=== created, create it (malloc). if the node has no children, create 256 children
+=== and assign the pointer to the pointer (trie ** children).
+
 element_at_( Trie *, index ) : return the value at the provided index
+=== check the exsitance of element, if existed, return the value, otherwise, return -1
+
 iterate( Trie * ) : iterate through the sparse array and print the elements
+=== iterate through the sparse array and only print those values that are non-default
 
 ============
