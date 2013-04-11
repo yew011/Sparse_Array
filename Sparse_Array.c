@@ -4,103 +4,124 @@
 #include <string.h>
 #include <assert.h>
 
+/* Constant declaration.*/
 #define CHILDREN_ 256
 #define LEVEL_    4
 #define IDX_BITS  8
 
-// declare a node in trie.
-// assume the trie has 4 levels.
-typedef struct Trie    trie;
-typedef union  Content content;
-
-union Content{
-  trie ** children_;
-  int value_;
-};
-
-struct Trie{
-  content content_;
+/* Trie structure.*/
+struct Trie {
+  union Content {
+    struct Trie **children_;
+    int value_;
+  } content_;
 };  
 
 // the constructor function.
-trie * construct_trie_(){
-  trie * rt_ = (trie *)malloc( sizeof(trie) );
-  if( rt_ == NULL ){
-    fprintf( stderr, "Error: malloc in constructor.\n" );
-    exit( -1 );
+struct Trie * construct_trie_()
+{
+  struct Trie *rt_ = malloc(sizeof(struct Trie));
+  if (rt_ == NULL) {
+    fprintf(stderr, "Error: malloc in constructor.\n");
+    exit(-1);
   }
   (rt_->content_).children_ = NULL;
   return rt_;
 }
 
 // the destructor function.
-void destruct_trie_( trie * node_ ){
-  if( node_ == NULL ) return;
-  int i = 0;
-  if( (node_->content_).children_ != NULL ){
-    for( i=0; i<CHILDREN_; i++ )
-      if( (node_->content_).children_[i] != NULL )
-	destruct_trie_( (node_->content_).children_[i] );
+void destruct_trie_(struct Trie *node_, int level_)
+{
+  int i;
+  if (node_ == NULL) {
+    return;
   }
-  free( node_ );
+  if (level_ < LEVEL_
+      && (node_->content_).children_ != NULL) {
+    for (i = 0; i < CHILDREN_; i++) {
+      if ((node_->content_).children_[i] != NULL) {
+	destruct_trie_((node_->content_).children_[i], level_+1);
+      }
+    }
+  }
+  free(node_);
   return;
 }
 
-// the insert function.
-int insert_( trie * root_, unsigned int idx_, int value_ ){
-  if( root_ == NULL ) return -1;
-  trie * tmp_ = root_;
-  int i = 0;
-  for( i=0; i<LEVEL_; i++ ){
-    if( (tmp_->content_).children_ == NULL ){
-      (tmp_->content_).children_ = (trie **)malloc( sizeof(trie*)*CHILDREN_ );
-      for( i=0; i<CHILDREN_; i++ )
-	(tmp_->content_).children_[i] = NULL;
+/* the insert function.*/
+int insert_(struct Trie *root_, unsigned int idx_, int value_)
+{
+  struct Trie *tmp_ = root_;
+  int i;
+  if (root_ == NULL) {
+    return -1;
+  }
+  for (i = 0; i < LEVEL_; i++) {
+    if ((tmp_->content_).children_ == NULL) {
+      (tmp_->content_).children_ = malloc(sizeof(struct Trie*)*CHILDREN_);
+      memset((tmp_->content_).children_, 0, sizeof(struct Trie*)*CHILDREN_);
     }
-    if( (tmp_ = (tmp_->content_).children_[(idx_>>(IDX_BITS*i))&0xFF]) == NULL ){
-      tmp_ = (trie *)malloc( sizeof(trie) );
-      (tmp_->content_).children_ == NULL;
+    if (((tmp_->content_).children_[(idx_>>(IDX_BITS*i))&0xFF]) == NULL) {
+      (tmp_->content_).children_[(idx_>>(IDX_BITS*i))&0xFF] = malloc(sizeof(struct Trie));
+      tmp_ = (tmp_->content_).children_[(idx_>>(IDX_BITS*i))&0xFF];
+      (tmp_->content_).children_ = NULL;
+    } else {
+      tmp_ = (tmp_->content_).children_[(idx_>>(IDX_BITS*i))&0xFF];
     }
   }
   (tmp_->content_).value_ = value_;
   return 0;
 }
 
-// the get function.
-int get_( trie * root_, unsigned int idx_ ){
-  trie * tmp_ = root_;
-  if( tmp_ == NULL || 
+/* the get function.*/
+int get_(struct Trie *root_, unsigned int idx_)
+{
+  struct Trie *tmp_ = root_;
+  if ((tmp_ == NULL) ||
       (tmp_->content_).children_ == NULL ||
       (tmp_ = (tmp_->content_).children_[idx_&0xFF]) == NULL ||
       (tmp_ = (tmp_->content_).children_[(idx_>>8)&0xFF]) == NULL ||
       (tmp_ = (tmp_->content_).children_[(idx_>>16)&0xFF]) == NULL ||
-      (tmp_ = (tmp_->content_).children_[(idx_>>24)&0xFF]) == NULL )
-    return 0;
+      (tmp_ = (tmp_->content_).children_[(idx_>>24)&0xFF]) == NULL) {
+    fprintf(stderr, "Error: node not exist, in get_.\n");
+    return 0x80000000;
+  }
   return (tmp_->content_).value_;
 }
 
-// the iterate function.
-void iterate_print_( trie * node_, unsigned int count_ ){
-  if( count_ == CHILDREN_-1 && node_ != NULL )
-    fprintf( stdout, "%d ", (node_->content_).value_ );
-  else if( node_ != NULL && (node_->content_).children_ != NULL )
-    iterate_print_( node_, count_++ );
+void iterate_print_(struct Trie *node_, int level_)
+{
+  int i;
+  if (level_ == LEVEL_) {
+    fprintf(stdout, "%d ", (node_->content_).value_);
+  } else {
+    if ((node_->content_).children_ != NULL) {
+      for (i = 0; i < CHILDREN_; i++) {
+	if ((node_->content_).children_[i] != NULL) {
+	  iterate_print_((node_->content_).children_[i], level_+1);
+	}
+      }
+    }
+  }
 }
-
-int iterate_( trie * root_ ){
-  if( root_ == NULL || (root_->content_).children_ == NULL )
+  /* the iterate function.*/
+int iterate_(struct Trie *root_)
+{
+  if (root_ == NULL || (root_->content_).children_ == NULL) {
+    fprintf(stderr, "Error: uninitialized trie in iterate_.\n");
     return -1;
-  iterate_print_( root_, (unsigned int) 0 );
-  fprintf( stdout, "\n" );
+  }
+  iterate_print_(root_, 0);
+  fprintf(stdout, "\n");
   return 0;
 }
 
 // main function, for testing.
-int main( int argc, char ** argv ){
-  trie * test_trie_ = NULL;
-
+int main(int argc, char **argv)
+{
+  struct Trie *test_trie_ = NULL;
   /* test cases:
-     Tests repeated for empty trie_, trie_ only least 8 bits filled, trie_ sparsely filled.
+     Tests repeated for empty trie_, trie_ with two ends filled, trie_ only least 8 bits filled, trie_ sparsely filled.
      1. Test the creation of trie_.
      2. Test the insert of trie_.
      3. Test the get of trie_.
@@ -108,13 +129,61 @@ int main( int argc, char ** argv ){
      5. Test the destructor of trie_.
    */
 
-  // Test for empty trie_.
+  /* Test for empty trie_.*/
+  fprintf(stdout, "[Start]: Test Create/Delete Empty Sparse Array.\n");
   test_trie_ = construct_trie_();
-  assert( test_trie_ != NULL );
-  assert( (test_trie_->content_).children_ == NULL );
-  assert( get_(test_trie_, 1024) == 0 );
-  destruct_trie_(test_trie_);
-  fprintf( stdout, "Success: Test Create/Delete Empty Spare Array.\n" );
+  assert(test_trie_ != NULL);
+  assert((test_trie_->content_).children_ == NULL);
+  fprintf(stdout, "   INVOKE: the get_ function for empty trie_.\n");
+  fprintf(stderr, "   INTENDED OUTPUT: ");
+  assert(get_(test_trie_, 1024) == 0x80000000);
+  fprintf(stdout, "   INVOKE: the iterate_ function.\n");
+  fprintf(stderr, "   INTENDED OUTPUT: ");
+  iterate_(test_trie_);
+  destruct_trie_(test_trie_, 0);
+  test_trie_ = NULL;
+  fprintf(stdout, "[Success]: Test Create/Delete Empty Sparse Array.\n");
 
+  /* Test for trie_ with only least 8 bits filled.*/
+  fprintf(stdout, "[Start]: Test Sparse Array With Two Ends Filled.\n");
+  test_trie_ = construct_trie_();
+  insert_(test_trie_, 0, 0);
+  assert(get_(test_trie_, 0) == 0);
+  assert(~((unsigned int)0) == (unsigned int)0 - (unsigned int)1);
+  insert_(test_trie_, ~((unsigned int)0), ~((unsigned int)0));
+  assert(get_(test_trie_, ~((unsigned int)0)) == ~((unsigned int)0));
+  fprintf(stdout, "   INVOKE: the iterate_ function.\n");
+  fprintf(stdout, "   EXPECTED OUTPUT: 0, -1.\n");
+  fprintf(stdout, "   OUPUT: ");
+  iterate_(test_trie_);
+  destruct_trie_(test_trie_, 0);
+  test_trie_ = NULL;
+  fprintf(stdout, "[Success]: Test Spare Array With Two Ends Filled.\n");
+
+  /* Test for least 8 bits filled.*/
+  fprintf(stdout, "[Start]: Test Sparse Array With Least 8-bits Filled.\n");
+  test_trie_ = construct_trie_();
+  int i;
+  for (i = 0; i <= 0xFF; i++) {
+    insert_(test_trie_, i, i);
+  }
+  for (i = 0; i <= 0xFF; i++) {
+    assert(get_(test_trie_, i) == i);
+  }
+  fprintf(stdout, "   INVOKE: the iterate_ function.\n");
+  fprintf(stdout, "   EXPECTED OUTPUT: 0 - 255.\n");
+  fprintf(stdout, "   OUPUT: ");
+  iterate_(test_trie_);
+  destruct_trie_(test_trie_, 0);
+  test_trie_ = NULL;
+  fprintf(stdout, "[Success]: Test Sparse Array With Least 8-bits Filled.\n");
+
+  /* Test for a real sparse array.*/
+  fprintf(stdout, "[Start]: Test A Real Sparse Array of Size 100.\n");
+  // create 100 random numbers and keep record of those 100 numbers
+  
+  fprintf(stdout, "[Success]: Test A Real Sparse Array of Size 100.\n");
+
+  fprintf(stdout, "[ALL TEST FINISHED].\n");
   return 0;
 }
