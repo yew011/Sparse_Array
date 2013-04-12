@@ -93,7 +93,7 @@ void iterate_print_(struct Trie *node_, int level_)
 {
   int i;
   if (level_ == LEVEL_) {
-    fprintf(stdout, "%d ", (node_->content_).value_);
+    fprintf(stdout, "%X ", (node_->content_).value_);
   } else {
     if ((node_->content_).children_ != NULL) {
       for (i = 0; i < CHILDREN_; i++) {
@@ -181,7 +181,32 @@ int main(int argc, char **argv)
   /* Test for a real sparse array.*/
   fprintf(stdout, "[Start]: Test A Real Sparse Array of Size 100.\n");
   // create 100 random numbers and keep record of those 100 numbers
-  
+  int j;
+  int arr_[100];
+  for (i = 0; i < 100; i++) {
+    arr_[i] = 0;
+    for (j = 0; j < 10; j++) {
+      arr_[i] *= 10;
+      arr_[i] += rand()%10;
+    }
+  }
+  test_trie_ = construct_trie_();
+  for (i = 0; i < 100; i++) {
+    insert_(test_trie_, arr_[i], arr_[i]);
+  }
+  for (i = 0; i < 100; i++) {
+    assert(get_(test_trie_, arr_[i]) == arr_[i]);
+  }
+  fprintf(stdout, "   INVOKE: the iterate_ function.\n");
+  fprintf(stdout, "   EXPECTED OUTPUT: ");
+  for (i = 0; i < 100; i++) {
+    fprintf(stdout, "%X ", arr_[i]);
+  }
+  fprintf(stdout, "\n");
+  fprintf(stdout, "   OUPUT: ");
+  iterate_(test_trie_);
+  destruct_trie_(test_trie_, 0);
+  test_trie_ = NULL;
   fprintf(stdout, "[Success]: Test A Real Sparse Array of Size 100.\n");
 
   fprintf(stdout, "[ALL TEST FINISHED].\n");
